@@ -26,10 +26,16 @@ struct NoiseBarApp: App {
 
     @MainActor
     private func processPendingAction() {
-        guard let raw = SharedKeys.defaults?.string(forKey: SharedKeys.pendingAction),
+        var current = SharedStateStore.read()
+        guard let raw = current.pendingAction,
               let action = PendingAction(rawValue: raw)
         else { return }
-        SharedKeys.defaults?.removeObject(forKey: SharedKeys.pendingAction)
+        let soundID = current.pendingSoundID
+        SharedStateStore.write { s in
+            s.pendingAction = nil
+            s.pendingSoundID = nil
+        }
+        _ = current
 
         switch action {
         case .stop:
@@ -41,11 +47,9 @@ struct NoiseBarApp: App {
                 state.pomodoro.start()
             }
         case .play:
-            if let id = SharedKeys.defaults?.string(forKey: SharedKeys.pendingSoundID),
-               let s = SoundLibrary.byID(id) {
+            if let id = soundID, let s = SoundLibrary.byID(id) {
                 state.playSound(s)
             }
-            SharedKeys.defaults?.removeObject(forKey: SharedKeys.pendingSoundID)
         }
     }
 }

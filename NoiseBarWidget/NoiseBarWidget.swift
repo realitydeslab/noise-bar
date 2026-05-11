@@ -1,6 +1,9 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
+import os
+
+private let log = Logger(subsystem: "design.reality.noisebar", category: "Widget")
 
 struct NoiseBarEntry: TimelineEntry {
     let date: Date
@@ -28,13 +31,15 @@ struct Provider: TimelineProvider {
     }
 
     private func readEntry() -> NoiseBarEntry {
-        let d = SharedKeys.defaults
-        let endTS = d?.object(forKey: SharedKeys.pomodoroEndDate) as? TimeInterval
+        let url = SharedStateStore.stateFileURL?.path ?? "<no container>"
+        let exists = FileManager.default.fileExists(atPath: SharedStateStore.stateFileURL?.path ?? "")
+        let state = SharedStateStore.read()
+        log.notice("readEntry: file=\(url, privacy: .public) exists=\(exists, privacy: .public) soundID=\(state.currentSoundID ?? "<nil>", privacy: .public), phase=\(state.pomodoroPhase ?? "<nil>", privacy: .public)")
         return NoiseBarEntry(
             date: Date(),
-            currentSoundID: d?.string(forKey: SharedKeys.currentSoundID),
-            pomodoroPhase: d?.string(forKey: SharedKeys.pomodoroPhase),
-            pomodoroEndDate: endTS.map { Date(timeIntervalSince1970: $0) }
+            currentSoundID: state.currentSoundID,
+            pomodoroPhase: state.pomodoroPhase,
+            pomodoroEndDate: state.pomodoroEndDate
         )
     }
 }

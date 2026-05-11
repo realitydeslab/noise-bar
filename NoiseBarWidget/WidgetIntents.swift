@@ -7,8 +7,10 @@ struct StopNoiseBarIntent: AppIntent {
     static var openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        SharedKeys.defaults?.set(PendingAction.stop.rawValue, forKey: SharedKeys.pendingAction)
-        SharedKeys.defaults?.removeObject(forKey: SharedKeys.pendingSoundID)
+        SharedStateStore.write { state in
+            state.pendingAction = PendingAction.stop.rawValue
+            state.pendingSoundID = nil
+        }
         postBus()
         return .result()
     }
@@ -20,8 +22,10 @@ struct TogglePomodoroIntent: AppIntent {
     static var openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        SharedKeys.defaults?.set(PendingAction.togglePomodoro.rawValue, forKey: SharedKeys.pendingAction)
-        SharedKeys.defaults?.removeObject(forKey: SharedKeys.pendingSoundID)
+        SharedStateStore.write { state in
+            state.pendingAction = PendingAction.togglePomodoro.rawValue
+            state.pendingSoundID = nil
+        }
         postBus()
         return .result()
     }
