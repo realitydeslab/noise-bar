@@ -11,6 +11,7 @@ public final class PomodoroTimer: ObservableObject {
 
     @Published public private(set) var phase: PomodoroPhase = .idle
     @Published public private(set) var remaining: Int = 0
+    @Published public private(set) var phaseEndDate: Date?
 
     private var ticker: Timer?
     private weak var audio: AudioPlayer?
@@ -31,6 +32,8 @@ public final class PomodoroTimer: ObservableObject {
         ticker = nil
         phase = .idle
         remaining = 0
+        phaseEndDate = nil
+        WidgetSync.updatePomodoro(phase: .idle, endDate: nil)
     }
 
     public func cancelAll() {
@@ -41,14 +44,18 @@ public final class PomodoroTimer: ObservableObject {
     private func beginWork() {
         phase = .work
         remaining = workDuration.seconds
+        phaseEndDate = Date().addingTimeInterval(TimeInterval(remaining))
         audio?.play(workSound)
+        WidgetSync.updatePomodoro(phase: .work, endDate: phaseEndDate)
         scheduleTicker()
     }
 
     private func beginBreak() {
         phase = .break
         remaining = breakDuration.seconds
+        phaseEndDate = Date().addingTimeInterval(TimeInterval(remaining))
         audio?.play(breakSound)
+        WidgetSync.updatePomodoro(phase: .break, endDate: phaseEndDate)
         scheduleTicker()
     }
 

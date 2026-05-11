@@ -91,7 +91,7 @@ struct SoundButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Image(sound.iconName)
+                Image.bundleIcon(sound.iconName)
                     .resizable()
                     .renderingMode(.template)
                     .scaledToFit()

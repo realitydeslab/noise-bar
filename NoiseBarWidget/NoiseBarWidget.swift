@@ -1,16 +1,17 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 struct NoiseBarEntry: TimelineEntry {
     let date: Date
     let currentSoundID: String?
-    let pomodoroRemaining: Int?
     let pomodoroPhase: String?
+    let pomodoroEndDate: Date?
 }
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> NoiseBarEntry {
-        NoiseBarEntry(date: Date(), currentSoundID: "brown-noise", pomodoroRemaining: nil, pomodoroPhase: nil)
+        NoiseBarEntry(date: Date(), currentSoundID: "brown-noise", pomodoroPhase: nil, pomodoroEndDate: nil)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NoiseBarEntry) -> Void) {
@@ -19,17 +20,21 @@ struct Provider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NoiseBarEntry>) -> Void) {
         let entry = readEntry()
-        let next = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date().addingTimeInterval(60)
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        let refreshAt: Date = {
+            if let end = entry.pomodoroEndDate { return end }
+            return Date().addingTimeInterval(15 * 60)
+        }()
+        completion(Timeline(entries: [entry], policy: .after(refreshAt)))
     }
 
     private func readEntry() -> NoiseBarEntry {
-        let defaults = UserDefaults(suiteName: "group.design.reality.noisebar")
+        let d = SharedKeys.defaults
+        let endTS = d?.object(forKey: SharedKeys.pomodoroEndDate) as? TimeInterval
         return NoiseBarEntry(
             date: Date(),
-            currentSoundID: defaults?.string(forKey: "currentSoundID"),
-            pomodoroRemaining: defaults?.object(forKey: "pomodoroRemaining") as? Int,
-            pomodoroPhase: defaults?.string(forKey: "pomodoroPhase")
+            currentSoundID: d?.string(forKey: SharedKeys.currentSoundID),
+            pomodoroPhase: d?.string(forKey: SharedKeys.pomodoroPhase),
+            pomodoroEndDate: endTS.map { Date(timeIntervalSince1970: $0) }
         )
     }
 }
@@ -38,36 +43,83 @@ struct NoiseBarWidgetView: View {
     var entry: NoiseBarEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "waveform")
-                Text("NoiseBar").font(.caption).bold()
-                Spacer()
-            }
-            if let phase = entry.pomodoroPhase, let remaining = entry.pomodoroRemaining {
+        VStack(alignment: .leading, spacing: 6) {
+            header
+            content
+            Spacer(minLength: 0)
+            actions
+        }
+        .containerBackground(.background, for: .widget)
+    }
+
+    private var header: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "waveform")
+            Text("NoiseBar").font(.caption2).bold()
+            Spacer()
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let phase = entry.pomodoroPhase, let end = entry.pomodoroEndDate {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(phase.capitalized)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(formatMMSS(remaining))
-                    .font(.system(.title, design: .monospaced))
-                    .bold()
-            } else if let id = entry.currentSoundID, let sound = SoundLibrary.byID(id) {
+                if end > Date() {
+                    Text(timerInterval: Date()...end, countsDown: true)
+                        .font(.system(.title2, design: .monospaced).bold())
+                        .monospacedDigit()
+                } else {
+                    Text("0:00")
+                        .font(.system(.title2, design: .monospaced).bold())
+                }
+            }
+        } else if let id = entry.currentSoundID, let sound = SoundLibrary.byID(id) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Playing")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(sound.name)
                     .font(.headline)
                     .lineLimit(2)
-            } else {
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Idle")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("Tap to open")
                     .font(.headline)
             }
-            Spacer(minLength: 0)
         }
-        .containerBackground(.background, for: .widget)
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        let isActive = entry.pomodoroPhase != nil || entry.currentSoundID != nil
+        HStack(spacing: 8) {
+            Button(intent: TogglePomodoroIntent()) {
+                Label(entry.pomodoroPhase != nil ? "Stop" : "Pomodoro",
+                      systemImage: entry.pomodoroPhase != nil ? "stop.fill" : "timer")
+                    .labelStyle(.iconOnly)
+                    .font(.title3)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.borderedProminent)
+
+            if isActive {
+                Button(intent: StopNoiseBarIntent()) {
+                    Label("Stop", systemImage: "stop.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
     }
 }
 
@@ -80,7 +132,7 @@ struct NoiseBarWidget: Widget {
             NoiseBarWidgetView(entry: entry)
         }
         .configurationDisplayName("NoiseBar")
-        .description("Shows the currently playing sound or Pomodoro countdown.")
+        .description("Currently playing sound or Pomodoro countdown.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

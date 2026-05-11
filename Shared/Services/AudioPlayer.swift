@@ -28,6 +28,7 @@ public final class AudioPlayer: ObservableObject {
             p.play()
             player = p
             currentSound = sound
+            WidgetSync.updateCurrentSound(sound)
         } catch {
             #if DEBUG
             print("AVAudioPlayer error: \(error)")
@@ -39,5 +40,6 @@ public final class AudioPlayer: ObservableObject {
         player?.stop()
         player = nil
         currentSound = nil
+        WidgetSync.updateCurrentSound(nil)
     }
 }
