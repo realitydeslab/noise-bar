@@ -10,11 +10,24 @@ struct NoiseBarEntry: TimelineEntry {
     let currentSoundID: String?
     let pomodoroPhase: String?
     let pomodoroEndDate: Date?
+    let workSoundID: String?
+    let breakSoundID: String?
+    let workDurationMinutes: Int?
+    let breakDurationMinutes: Int?
 }
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> NoiseBarEntry {
-        NoiseBarEntry(date: Date(), currentSoundID: "brown-noise", pomodoroPhase: nil, pomodoroEndDate: nil)
+        NoiseBarEntry(
+            date: Date(),
+            currentSoundID: nil,
+            pomodoroPhase: nil,
+            pomodoroEndDate: nil,
+            workSoundID: "brown-noise",
+            breakSoundID: "birds",
+            workDurationMinutes: 25,
+            breakDurationMinutes: 5
+        )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NoiseBarEntry) -> Void) {
@@ -31,15 +44,16 @@ struct Provider: TimelineProvider {
     }
 
     private func readEntry() -> NoiseBarEntry {
-        let url = SharedStateStore.stateFileURL?.path ?? "<no container>"
-        let exists = FileManager.default.fileExists(atPath: SharedStateStore.stateFileURL?.path ?? "")
         let state = SharedStateStore.read()
-        log.notice("readEntry: file=\(url, privacy: .public) exists=\(exists, privacy: .public) soundID=\(state.currentSoundID ?? "<nil>", privacy: .public), phase=\(state.pomodoroPhase ?? "<nil>", privacy: .public)")
         return NoiseBarEntry(
             date: Date(),
             currentSoundID: state.currentSoundID,
             pomodoroPhase: state.pomodoroPhase,
-            pomodoroEndDate: state.pomodoroEndDate
+            pomodoroEndDate: state.pomodoroEndDate,
+            workSoundID: state.workSoundID,
+            breakSoundID: state.breakSoundID,
+            workDurationMinutes: state.workDurationMinutes,
+            breakDurationMinutes: state.breakDurationMinutes
         )
     }
 }
@@ -47,10 +61,21 @@ struct Provider: TimelineProvider {
 struct NoiseBarWidgetView: View {
     var entry: NoiseBarEntry
 
+    private var pomoRunning: Bool { entry.pomodoroPhase != nil }
+    private var workSoundName: String {
+        SoundLibrary.byID(entry.workSoundID ?? "")?.name ?? "—"
+    }
+    private var breakSoundName: String {
+        SoundLibrary.byID(entry.breakSoundID ?? "")?.name ?? "—"
+    }
+    private var workMin: Int { entry.workDurationMinutes ?? 25 }
+    private var breakMin: Int { entry.breakDurationMinutes ?? 5 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             header
-            content
+            countdown
+            settings
             Spacer(minLength: 0)
             actions
         }
@@ -67,11 +92,11 @@ struct NoiseBarWidgetView: View {
     }
 
     @ViewBuilder
-    private var content: some View {
+    private var countdown: some View {
         if let phase = entry.pomodoroPhase, let end = entry.pomodoroEndDate {
-            VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(phase.capitalized)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                 if end > Date() {
                     Text(timerInterval: Date()...end, countsDown: true)
@@ -83,46 +108,53 @@ struct NoiseBarWidgetView: View {
                 }
             }
         } else if let id = entry.currentSoundID, let sound = SoundLibrary.byID(id) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Playing")
-                    .font(.caption)
+            HStack(spacing: 4) {
+                Image(systemName: "speaker.wave.2.fill")
                     .foregroundStyle(.secondary)
-                Text(sound.name)
-                    .font(.headline)
-                    .lineLimit(2)
+                Text(sound.name).font(.headline).lineLimit(1)
             }
         } else {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Idle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("Tap to open")
-                    .font(.headline)
-            }
+            Text("Idle")
+                .font(.headline)
+                .foregroundStyle(.secondary)
         }
     }
 
-    @ViewBuilder
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            settingRow(label: "Work", sound: workSoundName, minutes: workMin)
+            settingRow(label: "Break", sound: breakSoundName, minutes: breakMin)
+        }
+    }
+
+    private func settingRow(label: String, sound: String, minutes: Int) -> some View {
+        HStack(spacing: 4) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(sound).font(.caption2).lineLimit(1)
+            Spacer(minLength: 4)
+            Text("\(minutes)m").font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+        }
+    }
+
     private var actions: some View {
-        let isActive = entry.pomodoroPhase != nil || entry.currentSoundID != nil
         HStack(spacing: 8) {
             Button(intent: TogglePomodoroIntent()) {
-                Label(entry.pomodoroPhase != nil ? "Stop" : "Pomodoro",
-                      systemImage: entry.pomodoroPhase != nil ? "stop.fill" : "timer")
-                    .labelStyle(.iconOnly)
-                    .font(.title3)
-                    .frame(width: 32, height: 32)
+                Label(
+                    pomoRunning ? "Stop Pomodoro" : "Start Pomodoro",
+                    systemImage: pomoRunning ? "pause.fill" : "play.fill"
+                )
+                .labelStyle(.iconOnly)
+                .font(.title3)
+                .frame(width: 32, height: 32)
             }
             .buttonStyle(.borderedProminent)
 
-            if isActive {
-                Button(intent: StopNoiseBarIntent()) {
-                    Label("Stop", systemImage: "stop.fill")
-                        .labelStyle(.iconOnly)
-                        .font(.title3)
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.bordered)
+            Link(destination: URL(string: "noisebar://")!) {
+                Label("Open", systemImage: "arrow.up.right.square.fill")
+                    .labelStyle(.iconOnly)
+                    .font(.title3)
+                    .frame(width: 32, height: 32)
+                    .background(.thinMaterial, in: Capsule())
             }
         }
     }

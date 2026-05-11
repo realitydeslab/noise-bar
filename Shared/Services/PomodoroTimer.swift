@@ -16,8 +16,30 @@ public final class PomodoroTimer: ObservableObject {
     private var ticker: Timer?
     private weak var audio: AudioPlayer?
 
+    private var settingsObservers = Set<AnyCancellable>()
+
     public init(audio: AudioPlayer) {
         self.audio = audio
+        syncSettingsToWidget()
+
+        let publishers: [AnyPublisher<Void, Never>] = [
+            $workSound.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            $breakSound.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            $workDuration.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            $breakDuration.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+        ]
+        Publishers.MergeMany(publishers)
+            .sink { [weak self] in self?.syncSettingsToWidget() }
+            .store(in: &settingsObservers)
+    }
+
+    private func syncSettingsToWidget() {
+        WidgetSync.updatePomodoroSettings(
+            workSound: workSound,
+            breakSound: breakSound,
+            workDuration: workDuration,
+            breakDuration: breakDuration
+        )
     }
 
     public var isRunning: Bool { phase != .idle }

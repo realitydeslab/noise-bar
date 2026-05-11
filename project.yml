@@ -11,7 +11,7 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: KR9H35SQQ9
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
@@ -52,6 +52,9 @@ targets:
         CFBundleDisplayName: NoiseBar
         CFBundleName: NoiseBar
         UIBackgroundModes: [audio]
+        CFBundleURLTypes:
+          - CFBundleURLName: design.reality.noisebar
+            CFBundleURLSchemes: [noisebar]
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:

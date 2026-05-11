@@ -5,17 +5,29 @@ public struct SharedState: Codable, Sendable {
     public var currentSoundID: String?
     public var pomodoroPhase: String?
     public var pomodoroEndDate: Date?
+    public var workSoundID: String?
+    public var breakSoundID: String?
+    public var workDurationMinutes: Int?
+    public var breakDurationMinutes: Int?
     public var pendingAction: String?
     public var pendingSoundID: String?
 
     public init(currentSoundID: String? = nil,
                 pomodoroPhase: String? = nil,
                 pomodoroEndDate: Date? = nil,
+                workSoundID: String? = nil,
+                breakSoundID: String? = nil,
+                workDurationMinutes: Int? = nil,
+                breakDurationMinutes: Int? = nil,
                 pendingAction: String? = nil,
                 pendingSoundID: String? = nil) {
         self.currentSoundID = currentSoundID
         self.pomodoroPhase = pomodoroPhase
         self.pomodoroEndDate = pomodoroEndDate
+        self.workSoundID = workSoundID
+        self.breakSoundID = breakSoundID
+        self.workDurationMinutes = workDurationMinutes
+        self.breakDurationMinutes = breakDurationMinutes
         self.pendingAction = pendingAction
         self.pendingSoundID = pendingSoundID
     }

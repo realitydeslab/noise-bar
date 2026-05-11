@@ -31,9 +31,9 @@ struct TogglePomodoroIntent: AppIntent {
                 state.pomodoroPhase = nil
                 state.pomodoroEndDate = nil
             } else {
+                let minutes = state.workDurationMinutes ?? PomodoroDurations.defaultWork.minutes
                 state.pomodoroPhase = PomodoroPhase.work.rawValue
-                state.pomodoroEndDate = Date().addingTimeInterval(
-                    TimeInterval(PomodoroDurations.defaultWork.seconds))
+                state.pomodoroEndDate = Date().addingTimeInterval(TimeInterval(minutes * 60))
             }
             state.pendingAction = PendingAction.togglePomodoro.rawValue
         }
@@ -42,6 +42,7 @@ struct TogglePomodoroIntent: AppIntent {
         return .result()
     }
 }
+
 
 private func postBus() {
     let name = AppIntentBus.darwinNotificationName as CFString

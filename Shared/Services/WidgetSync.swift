@@ -31,4 +31,21 @@ public enum WidgetSync {
         WidgetCenter.shared.reloadAllTimelines()
         #endif
     }
+
+    public static func updatePomodoroSettings(
+        workSound: Sound,
+        breakSound: Sound,
+        workDuration: DurationOption,
+        breakDuration: DurationOption
+    ) {
+        #if os(iOS)
+        SharedStateStore.write { state in
+            state.workSoundID = workSound.id
+            state.breakSoundID = breakSound.id
+            state.workDurationMinutes = workDuration.minutes
+            state.breakDurationMinutes = breakDuration.minutes
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+    }
 }
