@@ -1,11 +1,32 @@
-# Noise Bar
+# NoiseBar
 
-Noise Bar is a minimal MacOS utility to listen to brown noise or nature sounds that help you relax or concentrate.
+Minimal ambient-sound + Pomodoro app for macOS (menu bar) and iOS (app + Home Screen widget).
 
-![](https://raw.githubusercontent.com/ZaninAndrea/noise-bar/main/screenshot.png)
+Sounds and icons originally from the [Noisekun](https://github.com/mateusfg7/Noisekun) project.
 
-The sounds and icons are sourced from the [Noisekun](https://github.com/mateusfg7/Noisekun) project.
+## Build
 
-## Installation
+Requires Xcode 15+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
-Download the latest release from the [releases page](https://github.com/ZaninAndrea/noise-bar/releases), unzip it and drag the app to your Applications folder.
+```bash
+brew install xcodegen
+xcodegen
+open NoiseBar.xcodeproj
+```
+
+Three targets:
+
+- **NoiseBar-macOS** — menu bar app (no dock icon, `LSUIElement`). Uses `MenuBarExtra`. macOS 14+.
+- **NoiseBar-iOS** — iOS app with sound grid and Pomodoro sheet. iOS 17+. Requires background audio entitlement.
+- **NoiseBarWidget** — Home Screen widget extension (bundled with the iOS app).
+
+Shared code lives in `Shared/`. Audio (`.m4a`) and icons (`.png`) are in `Shared/Resources/`.
+
+## Features
+
+- 18 looping ambient sounds (rain, fire, brown noise, …)
+- Pomodoro timer with configurable work/break sounds and durations (1, 2, 5, 10, 15, 25 min)
+- Loop toggle for indefinite cycling
+- MM:SS countdown in the macOS menu bar
+- Launch at login on macOS (via `SMAppService`)
+- Home Screen widget showing currently playing sound or Pomodoro phase
