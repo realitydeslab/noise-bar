@@ -26,7 +26,7 @@ struct NoiseBarApp: App {
 
     @MainActor
     private func processPendingAction() {
-        var current = SharedStateStore.read()
+        let current = SharedStateStore.read()
         guard let raw = current.pendingAction,
               let action = PendingAction(rawValue: raw)
         else { return }
@@ -35,17 +35,12 @@ struct NoiseBarApp: App {
             s.pendingAction = nil
             s.pendingSoundID = nil
         }
-        _ = current
 
         switch action {
         case .stop:
             state.stopAll()
         case .togglePomodoro:
-            if state.pomodoro.isRunning {
-                state.pomodoro.cancelAll()
-            } else {
-                state.pomodoro.start()
-            }
+            state.pomodoro.syncFromShared()
         case .play:
             if let id = soundID, let s = SoundLibrary.byID(id) {
                 state.playSound(s)

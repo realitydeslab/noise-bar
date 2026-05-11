@@ -27,6 +27,28 @@ public final class PomodoroTimer: ObservableObject {
         beginWork()
     }
 
+    #if os(iOS)
+    public func syncFromShared() {
+        let s = SharedStateStore.read()
+        guard let phaseStr = s.pomodoroPhase,
+              let phaseValue = PomodoroPhase(rawValue: phaseStr),
+              let endDate = s.pomodoroEndDate,
+              endDate > Date()
+        else {
+            if isRunning { cancelAll() }
+            return
+        }
+        let remainingSec = Int(endDate.timeIntervalSince(Date()))
+        ticker?.invalidate()
+        phase = phaseValue
+        phaseEndDate = endDate
+        remaining = remainingSec
+        let sound = (phaseValue == .work) ? workSound : breakSound
+        audio?.play(sound)
+        scheduleTicker()
+    }
+    #endif
+
     public func stop() {
         ticker?.invalidate()
         ticker = nil
